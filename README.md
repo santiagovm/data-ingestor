@@ -6,8 +6,30 @@ This repository implements a scalable data pipeline that:
 - Provides a GraphQL API for accessing the data with advanced features like filtering, sorting, and pagination
 - Supports distributed processing for handling large-scale data ingestion
 
-<!-- START doctoc -->
-<!-- END doctoc -->
+<!-- START doctoc generated TOC please keep comment here to allow auto update -->
+<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
+
+- [Running Locally](#running-locally)
+  - [Environment Variables](#environment-variables)
+  - [Ports](#ports)
+  - [Prerequisites](#prerequisites)
+  - [Build and Run](#build-and-run)
+  - [Stop Application](#stop-application)
+  - [Ingesting Data](#ingesting-data)
+  - [Accessing Data via the Analytics GraphQL API](#accessing-data-via-the-analytics-graphql-api)
+- [Architecture](#architecture)
+  - [Scaling Strategies](#scaling-strategies)
+  - [Design Challenges](#design-challenges)
+  - [Current Implementation](#current-implementation)
+  - [Areas for further improvement](#areas-for-further-improvement)
+- [Implementation Details](#implementation-details)
+  - [The Dataset: Earthquakes](#the-dataset-earthquakes)
+  - [Earthquakes Query Samples](#earthquakes-query-samples)
+  - [Data Integrity and Validation](#data-integrity-and-validation)
+  - [Tests](#tests)
+  - [Technology Stack](#technology-stack)
+
+<!-- END doctoc generated TOC please keep comment here to allow auto update -->
 
 ## Running Locally
 
