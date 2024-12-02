@@ -1,4 +1,39 @@
 services:
+  
+  postgres-batch:
+    image: postgres:16
+    container_name: postgres-batch
+    ports:
+      - "5433:5432"
+    environment:
+      - POSTGRES_USER=${BATCH_DB_USER}
+      - POSTGRES_PASSWORD=${BATCH_DB_PASSWORD}
+      - POSTGRES_DB=batch_jobs
+    tmpfs:
+      - /var/lib/postgresql/data
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U ${BATCH_DB_USER}" ]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+      
+  postgres-analytics:
+    image: postgres:16
+    container_name: postgres-analytics
+    ports:
+      - "5434:5432"
+    environment:
+      - POSTGRES_USER=${ANALYTICS_DB_USER}
+      - POSTGRES_PASSWORD=${ANALYTICS_DB_PASSWORD}
+      - POSTGRES_DB=analytics
+    tmpfs:
+      - /var/lib/postgresql/data
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U ${ANALYTICS_DB_USER}" ]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+      
   rabbitmq:
     image: rabbitmq:3-management
     container_name: rabbitmq
@@ -6,8 +41,8 @@ services:
       - "5672:5672"  # AMQP protocol port
       - "15672:15672"  # Management UI port
     environment:
-      - RABBITMQ_DEFAULT_USER=guest
-      - RABBITMQ_DEFAULT_PASS=guest
+      - RABBITMQ_DEFAULT_USER=${RABBIT_USER}
+      - RABBITMQ_DEFAULT_PASS=${RABBIT_PASSWORD}
     tmpfs:
       - /var/lib/rabbitmq
       - /var/log/rabbitmq
@@ -16,3 +51,131 @@ services:
       interval: 30s
       timeout: 10s
       retries: 3
+
+  worker:
+    build:
+      context: ./worker
+      dockerfile: Dockerfile
+    image: earthquakes-ingestion-worker:latest
+    volumes:
+      - ./data:/app/data
+    restart: unless-stopped
+    deploy:
+      replicas: 2
+    ports:
+      - "8080-8090:8080"
+    environment:
+      SPRING_DATASOURCE_BATCH_JDBC_URL: jdbc:postgresql://postgres-batch:5432/batch_jobs
+      SPRING_DATASOURCE_ANALYTICS_JDBC_URL: jdbc:postgresql://postgres-analytics:5432/analytics
+      SPRING_FLYWAY_URL: jdbc:postgresql://postgres-analytics:5432/analytics
+      SPRING_RABBITMQ_HOST: rabbitmq
+      ANALYTICS_DB_USER: ${ANALYTICS_DB_USER}
+      ANALYTICS_DB_PASSWORD: ${ANALYTICS_DB_PASSWORD}
+      BATCH_DB_USER: ${BATCH_DB_USER}
+      BATCH_DB_PASSWORD: ${BATCH_DB_PASSWORD}
+      RABBIT_USER: ${RABBIT_USER}
+      RABBIT_PASSWORD: ${RABBIT_PASSWORD}
+      SPRING_AMQP_DESERIALIZATION_TRUST_ALL: true
+    depends_on:
+      postgres-analytics:
+        condition: service_healthy
+      postgres-batch:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    healthcheck:
+      test: wget --no-verbose --tries=1 --spider http://localhost:8080/actuator/health
+      interval: 5s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
+  
+  manager:
+    build:
+      context: ./manager
+      dockerfile: Dockerfile
+    image: earthquakes-ingestion-manager:latest
+    volumes:
+      - ./data:/app/data
+    restart: unless-stopped
+    deploy:
+      replicas: 1
+    ports:
+      - "8078:8080"
+    environment:
+      APP_INPUT_DIRECTORY: /app/data
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres-batch:5432/batch_jobs
+      SPRING_RABBITMQ_HOST: rabbitmq
+      BATCH_DB_USER: ${BATCH_DB_USER}
+      BATCH_DB_PASSWORD: ${BATCH_DB_PASSWORD}
+      RABBIT_USER: ${RABBIT_USER}
+      RABBIT_PASSWORD: ${RABBIT_PASSWORD}
+      SPRING_AMQP_DESERIALIZATION_TRUST_ALL: true
+    depends_on:
+      postgres-batch:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    healthcheck:
+      test: wget --no-verbose --tries=1 --spider http://localhost:8080/actuator/health
+      interval: 5s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
+
+  job-mgmt-api:
+    build:
+      context: ./job-mgmt-api
+      dockerfile: Dockerfile
+    image: job-mgmt-api:latest
+    restart: unless-stopped
+    deploy:
+      replicas: 1
+    ports:
+      - "8079:8080"
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres-batch:5432/batch_jobs
+      SPRING_RABBITMQ_HOST: rabbitmq
+      BATCH_DB_USER: ${BATCH_DB_USER}
+      BATCH_DB_PASSWORD: ${BATCH_DB_PASSWORD}
+      RABBIT_USER: ${RABBIT_USER}
+      RABBIT_PASSWORD: ${RABBIT_PASSWORD}
+    depends_on:
+      postgres-batch:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      analytics-api:
+        condition: service_healthy
+    healthcheck:
+      test: wget --no-verbose --tries=1 --spider http://localhost:8080/actuator/health
+      interval: 5s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
+
+  analytics-api:
+    build:
+      context: ./analytics-api
+      dockerfile: Dockerfile
+    image: analytics-api:latest
+    restart: unless-stopped
+    deploy:
+      replicas: 1
+    ports:
+      - "8077:8080"
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres-analytics:5432/analytics
+      ANALYTICS_DB_USER: ${ANALYTICS_DB_USER}
+      ANALYTICS_DB_PASSWORD: ${ANALYTICS_DB_PASSWORD}
+    depends_on:
+      postgres-analytics:
+        condition: service_healthy
+      worker:
+        condition: service_healthy
+    healthcheck:
+      test: wget --no-verbose --tries=1 --spider http://localhost:8080/actuator/health
+      interval: 5s
+      timeout: 5s
+      retries: 5
+      start_period: 5s

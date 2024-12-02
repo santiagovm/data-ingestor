@@ -1,0 +1,84 @@
+scalar DateTime
+
+type Query {
+    earthquakesCount: Int!
+    
+    earthquakes(
+        filter: EarthquakeFilter
+        sort: SortInput!
+        first: Int
+        last: Int
+        after: String
+        before: String
+    ): EarthquakeConnection!
+    
+    earthquakeStats(filter: EarthquakeFilter): EarthquakeStats!
+}
+
+type Earthquake {
+    id: ID!
+    time: DateTime
+    magnitude: Float
+    place: String
+    state: String
+    country: String
+    tsunami: Boolean
+    significance: Int
+    magType: String
+    eventType: String
+    feltReports: Int
+    cdi: Float
+    mmi: Float
+    alertLevel: String
+    sourceId: String
+}
+
+type EarthquakeConnection {
+    edges: [EarthquakeEdge!]!
+    pageInfo: PageInfo!
+    totalCount: Int!
+}
+
+type EarthquakeEdge {
+    cursor: String!
+    node: Earthquake!
+}
+
+type PageInfo {
+    hasNextPage: Boolean!
+    hasPreviousPage: Boolean!
+    startCursor: String
+    endCursor: String
+}
+
+type EarthquakeStats {
+    count: Int!
+    averageMagnitude: Float!
+    maxMagnitude: Float!
+    tsunamiCount: Int!
+}
+
+input EarthquakeFilter {
+    startTime: DateTime
+    endTime: DateTime
+    minMagnitude: Float
+    maxMagnitude: Float
+    country: String
+    tsunami: Boolean
+}
+
+input SortInput {
+    field: SortField!
+    direction: SortDirection!
+}
+
+enum SortField {
+    TIME
+    MAGNITUDE
+    SIGNIFICANCE
+}
+
+enum SortDirection {
+    ASC
+    DESC
+}

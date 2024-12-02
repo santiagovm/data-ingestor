@@ -3,3 +3,12 @@
 *.iws
 *.iml
 *.ipr
+
+### Environment Variables ###
+.envrc
+
+### Mac Stuff ###
+.DS_Store
+
+### e2e temp data
+data/test-e2e
