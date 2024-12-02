@@ -6,6 +6,8 @@ This repository implements a scalable data pipeline that:
 - Provides a GraphQL API for accessing the data with advanced features like filtering, sorting, and pagination
 - Supports distributed processing for handling large-scale data ingestion
 
+## Table of Contents
+
 <!-- START doctoc generated TOC please keep comment here to allow auto update -->
 <!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
 
@@ -867,6 +869,7 @@ Writing data to the analytics database is implemented in the class [ItemWriterCo
 The application was implemented using the following technologies:
 
 - [direnv](https://direnv.net/)
+- [doctoc](https://github.com/thlorenz/doctoc)
 - [Dockerfile](https://docs.docker.com/reference/dockerfile/)
 - [Docker Compose](https://docs.docker.com/compose/)
 - [Docker Desktop](https://www.docker.com/products/docker-desktop/)
